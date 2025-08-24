@@ -1,46 +1,36 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 
-# Model setup
-MODEL_NAME = "facebook/m2m100_418M"  # smaller, CPU-friendly
-tokenizer = M2M100Tokenizer.from_pretrained(MODEL_NAME)
-model = M2M100ForConditionalGeneration.from_pretrained(MODEL_NAME)
-device = torch.device("cpu")  # force CPU
-model.to(device)
+app = FastAPI(title="NLLB Translator API 🚀")
 
-# FastAPI setup
-app = FastAPI()
+MODEL_NAME = "facebook/nllb-200-1.3B"
 
-class TranslationRequest(BaseModel):
+# Load model and tokenizer
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
+
+class TranslateRequest(BaseModel):
     text: str
     source_lang: str
     target_lang: str
 
 @app.get("/")
 def root():
-    return {"message": "M2M-100 Translator API running 🚀", "endpoints": ["/translate", "/health"]}
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+    return {"message": "NLLB Translator API is running 🚀", "endpoints": ["/translate"]}
 
 @app.post("/translate")
-@app.post("/translate")
-@app.post("/translate")
-def translate(req: TranslationRequest):
-    # Must use valid M2M-100 codes
-    tokenizer.src_lang = req.source_lang
-    inputs = tokenizer(req.text, return_tensors="pt").to(device)
-
+def translate(req: TranslateRequest):
+    # Tokenize input text
+    inputs = tokenizer(req.text, return_tensors="pt")
+    
+    # Generate translation
     generated_tokens = model.generate(
         **inputs,
-        forced_bos_token_id=tokenizer.get_lang_id(req.target_lang),
-        max_length=50
+        forced_bos_token_id=tokenizer.lang_code_to_id[req.target_lang],
+        max_length=256
     )
-
-    translation = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-    return {"translation": translation[0]}
-
-
+    
+    translation = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]
+    return {"translation": translation}
