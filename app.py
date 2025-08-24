@@ -15,13 +15,15 @@ class TranslateRequest(BaseModel):
 
 @app.post("/translate")
 def translate(req: TranslateRequest):
-    # Encode the input with source language
-    inputs = tokenizer(req.text, return_tensors="pt", src_lang=req.source_lang)
-    
-    # Generate translation with target language
-    generated_tokens = model.generate(**inputs, tgt_lang=req.target_lang)
-    
-    # Decode output
+    # Tokenize text normally
+    inputs = tokenizer(req.text, return_tensors="pt")
+
+    # Generate translation by specifying source and target languages at generation
+    generated_tokens = model.generate(
+        **inputs,
+        forced_bos_token_id=model.get_lang_id(req.target_lang),  # target language
+        decoder_start_token_id=model.get_lang_id(req.target_lang)
+    )
+
     translation = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]
-    
     return {"translation": translation}
