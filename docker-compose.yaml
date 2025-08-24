@@ -5,7 +5,7 @@ services:
     build: .
     container_name: nllb-translator
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
