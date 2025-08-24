@@ -27,14 +27,17 @@ def health():
     return {"status": "ok"}
 
 @app.post("/translate")
+@app.post("/translate")
 def translate(req: TranslationRequest):
     tokenizer.src_lang = req.source_lang
     inputs = tokenizer(req.text, return_tensors="pt").to(device)
 
     generated_tokens = model.generate(
         **inputs,
-        forced_bos_token_id=tokenizer.get_lang_id(req.target_lang)
+        forced_bos_token_id=tokenizer.get_lang_id(req.target_lang),
+        max_length=50  # optional, prevents OOM
     )
 
     translation = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
     return {"translation": translation[0]}
+
