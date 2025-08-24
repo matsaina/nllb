@@ -9,12 +9,6 @@ services:
     volumes:
       - model_cache:/root/.cache/huggingface
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 60s
-      timeout: 30s
-      retries: 5
-      start_period: 300s  # 5 minutes for model download
     deploy:
       resources:
         limits:
