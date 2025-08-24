@@ -3,9 +3,9 @@ from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 
-app = FastAPI(title="NLLB Translator API 🚀")
+app = FastAPI(title="NLLB Distilled Translator API 🚀")
 
-MODEL_NAME = "facebook/nllb-200-1.3B"
+MODEL_NAME = "facebook/nllb-200-distilled-1.3B"
 
 # Load model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -18,7 +18,7 @@ class TranslateRequest(BaseModel):
 
 @app.get("/")
 def root():
-    return {"message": "NLLB Translator API is running 🚀", "endpoints": ["/translate"]}
+    return {"message": "NLLB Distilled Translator API is running 🚀", "endpoints": ["/translate"]}
 
 @app.post("/translate")
 def translate(req: TranslateRequest):
