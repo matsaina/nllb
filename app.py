@@ -15,11 +15,13 @@ class TranslateRequest(BaseModel):
 
 @app.post("/translate")
 def translate(req: TranslateRequest):
-    # Tokenize input normally
+    # Tokenize the input
     inputs = tokenizer(req.text, return_tensors="pt")
 
-    # Get the target language ID from the tokenizer
-    target_lang_id = tokenizer.get_lang_id(req.target_lang)
+    # Use lang_code_to_id dictionary
+    if req.target_lang not in tokenizer.lang_code_to_id:
+        return {"error": f"Unknown target language code: {req.target_lang}"}
+    target_lang_id = tokenizer.lang_code_to_id[req.target_lang]
 
     # Generate translation
     generated_tokens = model.generate(
