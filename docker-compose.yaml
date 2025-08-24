@@ -1,14 +1,17 @@
 version: "3.9"
 
 services:
-  m2m-translator:
+  nllb-distilled-translator:
     build: .
-    container_name: m2m-translator
+    container_name: nllb-distilled-translator
     ports:
       - "8085:8085"
-    restart: always
+    restart: unless-stopped
+    environment:
+      - MODEL_NAME=facebook/nllb-200-distilled-1.3B
     volumes:
       - hf_cache:/root/.cache/huggingface
 
 volumes:
   hf_cache:
+
