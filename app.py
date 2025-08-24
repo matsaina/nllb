@@ -1,11 +1,16 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
+import torch
 
-model_name = "facebook/nllb-200-distilled-600M"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+# Model setup
+MODEL_NAME = "facebook/m2m100_418M"  # smaller, CPU-friendly
+tokenizer = M2M100Tokenizer.from_pretrained(MODEL_NAME)
+model = M2M100ForConditionalGeneration.from_pretrained(MODEL_NAME)
+device = torch.device("cpu")  # force CPU
+model.to(device)
 
+# FastAPI setup
 app = FastAPI()
 
 class TranslationRequest(BaseModel):
@@ -13,31 +18,23 @@ class TranslationRequest(BaseModel):
     source_lang: str
     target_lang: str
 
-from transformers import pipeline
-
-translator = pipeline(
-    "translation",
-    model="facebook/nllb-200-distilled-600M",
-    tokenizer="facebook/nllb-200-distilled-600M",
-    device=-1  # CPU only; change to 0 if using GPU
-)
-
-@app.post("/translate")
-def translate(req: TranslationRequest):
-    # Use pipeline translation
-    result = translator(
-        req.text,
-        src_lang=req.source_lang,
-        tgt_lang=req.target_lang
-    )
-    return {"translation": result[0]['translation_text']}
-
-
-
 @app.get("/")
 def root():
-    return {"message": "NLLB Translator API is running 🚀", "endpoints": ["/translate", "/health"]}
+    return {"message": "M2M-100 Translator API running 🚀", "endpoints": ["/translate", "/health"]}
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.post("/translate")
+def translate(req: TranslationRequest):
+    tokenizer.src_lang = req.source_lang
+    inputs = tokenizer(req.text, return_tensors="pt").to(device)
+
+    generated_tokens = model.generate(
+        **inputs,
+        forced_bos_token_id=tokenizer.get_lang_id(req.target_lang)
+    )
+
+    translation = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+    return {"translation": translation[0]}
