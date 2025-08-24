@@ -1,36 +1,27 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-import torch
 
-app = FastAPI(title="NLLB Distilled Translator API 🚀")
+app = FastAPI()
 
 MODEL_NAME = "facebook/nllb-200-distilled-1.3B"
-
-# Load model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
 
 class TranslateRequest(BaseModel):
     text: str
-    source_lang: str
-    target_lang: str
-
-@app.get("/")
-def root():
-    return {"message": "NLLB Distilled Translator API is running 🚀", "endpoints": ["/translate"]}
+    source_lang: str  # e.g., "swh_Latn"
+    target_lang: str  # e.g., "kin_Latn"
 
 @app.post("/translate")
 def translate(req: TranslateRequest):
-    tokenizer.src_lang = req.source_lang
-    inputs = tokenizer(req.text, return_tensors="pt")
+    # Encode the input with source language
+    inputs = tokenizer(req.text, return_tensors="pt", src_lang=req.source_lang)
     
-    generated_tokens = model.generate(
-        **inputs,
-        forced_bos_token_id=tokenizer.get_lang_id(req.target_lang),
-        max_length=256
-    )
+    # Generate translation with target language
+    generated_tokens = model.generate(**inputs, tgt_lang=req.target_lang)
     
+    # Decode output
     translation = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]
+    
     return {"translation": translation}
-
