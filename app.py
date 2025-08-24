@@ -1,32 +1,29 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import pipeline
 
-app = FastAPI()
+app = FastAPI(title="NLLB-200 Translation API")
 
-MODEL_NAME = "facebook/nllb-200-distilled-1.3B"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
-
+# Define request model
 class TranslateRequest(BaseModel):
     text: str
     source_lang: str  # e.g., "eng_Latn"
-    target_lang: str  # e.g., "kin_Latn"
+    target_lang: str  # e.g., "fra_Latn"
+
+# Initialize translation pipeline
+translator = pipeline(
+    "translation",
+    model="facebook/nllb-200-distilled-1.3B",
+)
 
 @app.post("/translate")
 def translate(req: TranslateRequest):
-    # Tokenize input text
-    inputs = tokenizer(req.text, return_tensors="pt")
-
-    # Get decoder start token ID from target language
-    target_lang_id = model.get_decoder_start_token_id(req.target_lang)
-
-    # Generate translation
-    generated_tokens = model.generate(
-        **inputs,
-        forced_bos_token_id=target_lang_id,
-        decoder_start_token_id=target_lang_id
-    )
-
-    translation = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]
-    return {"translation": translation}
+    try:
+        result = translator(
+            req.text,
+            src_lang=req.source_lang,
+            tgt_lang=req.target_lang
+        )
+        return {"translation": result[0]["translation_text"]}
+    except Exception as e:
+        return {"error": str(e)}
