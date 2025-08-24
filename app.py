@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-# Load model + tokenizer
 model_name = "facebook/nllb-200-distilled-600M"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
@@ -17,9 +16,9 @@ class TranslationRequest(BaseModel):
 @app.post("/translate")
 def translate(req: TranslationRequest):
     inputs = tokenizer(
-        req.text, 
-        return_tensors="pt", 
-        padding=True, 
+        req.text,
+        return_tensors="pt",
+        padding=True,
         truncation=True
     )
     translated_tokens = model.generate(
@@ -28,3 +27,11 @@ def translate(req: TranslationRequest):
     )
     translated_text = tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)
     return {"translation": translated_text[0]}
+
+@app.get("/")
+def root():
+    return {"message": "NLLB Translator API is running 🚀", "endpoints": ["/translate", "/health"]}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
