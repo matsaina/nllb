@@ -1,30 +1,19 @@
-# Dockerfile for NLLB-200-distilled-600M Translation Service
-FROM python:3.9-slim
-
-# Set working directory
-WORKDIR /app
+FROM python:3.10-slim
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Install python dependencies
+RUN pip install --no-cache-dir torch transformers fastapi uvicorn
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Set working dir
+WORKDIR /app
 
-# Copy application code
-COPY . .
+# Copy service code
+COPY app.py /app/
 
 # Expose port
-EXPOSE 5000
+EXPOSE 8085
 
-# Set environment variables
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
-
-# Run the application
-CMD ["python", "app.py"]
+# Run FastAPI with Uvicorn
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8085"]
